@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topp 3 Förbrukning</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            margin-bottom: 20px;
+        }
+        
+        .back-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .month {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .average-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .average-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .average-value {
+            font-size: 36px;
+            font-weight: bold;
+        }
+        
+        .top3-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .top3-item {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .rank {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #FFD700;
+            color: #333;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .rank.silver { background: #C0C0C0; }
+        .rank.bronze { background: #CD7F32; color: white; }
+        
+        .consumption {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        
+        .datetime {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .loading, .error {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 10px;
+            color: #c33;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="back-button" onclick="window.location.href='/'">← Tillbaka</button>
+            <h1 id="siteName">Laddar...</h1>
+            <div class="month" id="month"></div>
+        </div>
+        
+        <div id="content">
+            <div class="loading">Laddar data...</div>
+        </div>
+    </div>
+    
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const siteId = urlParams.get('id');
+        
+        if (!siteId) {
+            window.location.href = '/';
+        }
+        
+        async function loadData() {
+            try {
+                const response = await fetch(`/api/${siteId}/top-weekdays`);
+                if (!response.ok) throw new Error('Failed to load data');
+                
+                const data = await response.json();
+                
+                document.getElementById('siteName').textContent = siteId.charAt(0).toUpperCase() + siteId.slice(1);
+                document.getElementById('month').textContent = `Vardagar 7-18, ${formatMonth(data.month)}`;
+                
+                const content = document.getElementById('content');
+                
+                if (data.top3.length === 0) {
+                    content.innerHTML = '<div class="loading">Ingen data för innevarande månad ännu.</div>';
+                    return;
+                }
+                
+                const rankClasses = ['', 'silver', 'bronze'];
+                
+                content.innerHTML = `
+                    <div class="average-card">
+                        <div class="average-label">Medelvärde topp 3</div>
+                        <div class="average-value">${data.average.toFixed(2)} kWh</div>
+                    </div>
+                    
+                    <div class="top3-list">
+                        ${data.top3.map((item, index) => `
+                            <div class="top3-item">
+                                <span class="rank ${rankClasses[index]}">${index + 1}</span>
+                                <div class="consumption">${item.consumption_kwh.toFixed(2)} kWh</div>
+                                <div class="datetime">${formatDateTime(item.date, item.hour)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+            } catch (error) {
+                document.getElementById('content').innerHTML = 
+                    '<div class="error">Kunde inte ladda data. Kontrollera att servern körs.</div>';
+            }
+        }
+        
+        function formatMonth(yearMonth) {
+            const months = ['januari', 'februari', 'mars', 'april', 'maj', 'juni',
+                          'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+            const [year, month] = yearMonth.split('-');
+            return `${months[parseInt(month) - 1]} ${year}`;
+        }
+        
+        function formatDateTime(date, utcHour) {
+            // Konvertera UTC-timme till svensk tid (enkel approximation)
+            // Vinterti: UTC+1, Sommartid: UTC+2
+            const d = new Date(date + 'T00:00:00Z');
+            const isDST = isSummerTime(d);
+            const offset = isDST ? 2 : 1;
+            const localHour = (utcHour + offset) % 24;
+            
+            const dateObj = new Date(date);
+            const weekdays = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag'];
+            const weekday = weekdays[dateObj.getUTCDay()];
+            
+            return `${weekday} ${date}, kl ${String(localHour).padStart(2, '0')}:00-${String(localHour + 1).padStart(2, '0')}:00`;
+        }
+        
+        function isSummerTime(date) {
+            // Enkel sommartidskontroll för Europa (sista söndagen i mars till sista söndagen i oktober)
+            const year = date.getFullYear();
+            const marchLastSunday = getLastSunday(year, 2); // Mars = 2
+            const octoberLastSunday = getLastSunday(year, 9); // Oktober = 9
+            
+            return date >= marchLastSunday && date < octoberLastSunday;
+        }
+        
+        function getLastSunday(year, month) {
+            const lastDay = new Date(Date.UTC(year, month + 1, 0));
+            const day = lastDay.getUTCDay();
+            const lastSunday = new Date(Date.UTC(year, month + 1, 0 - day, 2, 0, 0)); // 2:00 UTC
+            return lastSunday;
+        }
+        
+        loadData();
+    </script>
+</body>
+</html>
