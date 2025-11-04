@@ -3,6 +3,7 @@ package db
 import (
     "database/sql"
     "energy-monitor/models"
+    "fmt"
     "strings"
 )
 
@@ -51,4 +52,55 @@ func GetAllSites() ([]models.Site, error) {
     }
     
     return sites, nil
+}
+
+// GetHolidays hämtar alla helgdagar för en sajt
+func GetHolidays(siteID string) (map[string]bool, error) {
+    query := `SELECT date FROM holidays WHERE site_id = ?`
+    rows, err := DB.Query(query, siteID)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+    
+    holidays := make(map[string]bool)
+    for rows.Next() {
+        var date string
+        if err := rows.Scan(&date); err != nil {
+            return nil, err
+        }
+        holidays[date] = true
+    }
+    
+    return holidays, nil
+}
+
+// GetMonthEnergyData hämtar all energidata för en månad
+func GetMonthEnergyData(siteID string, year int, month int) ([]models.EnergyData, error) {
+    query := `
+        SELECT id, site_id, date, hour, consumption_kwh, outdoor_temp, wind_speed, created_at
+        FROM energy_data
+        WHERE site_id = ?
+        AND substr(date, 1, 7) = ?
+        ORDER BY consumption_kwh DESC
+    `
+    
+    yearMonth := fmt.Sprintf("%04d-%02d", year, month)
+    rows, err := DB.Query(query, siteID, yearMonth)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+    
+    var data []models.EnergyData
+    for rows.Next() {
+        var ed models.EnergyData
+        if err := rows.Scan(&ed.ID, &ed.SiteID, &ed.Date, &ed.Hour, 
+            &ed.ConsumptionKWh, &ed.OutdoorTemp, &ed.WindSpeed, &ed.CreatedAt); err != nil {
+            return nil, err
+        }
+        data = append(data, ed)
+    }
+    
+    return data, nil
 }

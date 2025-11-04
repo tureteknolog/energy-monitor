@@ -27,6 +27,8 @@ func main() {
     
     // API endpoints
     r.HandleFunc("/api/{site_id}/consumption", handlers.PostConsumption).Methods("POST")
+    r.HandleFunc("/api/{site_id}/top-weekdays", handlers.GetTopWeekdays).Methods("GET")
+    r.HandleFunc("/api/sites", handlers.GetSites).Methods("GET")
     r.HandleFunc("/health", healthCheck).Methods("GET")
     
     // Serve static files
