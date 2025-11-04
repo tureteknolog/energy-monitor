@@ -28,7 +28,7 @@ go build -o energy-monitor
 ./energy-monitor
 ```
 
-Servern startar på http://localhost:8080
+Servern startar på http://localhost:8081
 
 ## API
 
@@ -82,7 +82,7 @@ automation:
 
 rest_command:
   send_energy_data:
-    url: "http://your-server:8080/api/{{ site_id }}/consumption"
+    url: "http://your-server:8081/api/{{ site_id }}/consumption"
     method: POST
     content_type: "application/json"
     payload: >
