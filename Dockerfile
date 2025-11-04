@@ -24,8 +24,8 @@ RUN mkdir -p /app/data
 
 ENV TZ=Europe/Stockholm
 ENV DB_PATH=/app/data/energy.db
-ENV PORT=8080
+ENV PORT=8081
 
-EXPOSE 8080
+EXPOSE 8081
 
 CMD ["./energy-monitor"]
