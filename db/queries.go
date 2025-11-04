@@ -1,7 +1,6 @@
 package db
 
 import (
-    "database/sql"
     "energy-monitor/models"
     "fmt"
     "strings"

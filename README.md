@@ -54,9 +54,10 @@ Lista alla sajter.
 
 ## Populera helgdagar
 
-Efter att sajter skapats, kör:
+Efter att sajter skapats, bygg och kör verktyget:
 ```bash
-go run populate_holidays.go
+go build -o populate_holidays ./cmd/populate_holidays
+./populate_holidays
 ```
 
 Detta lägger till svenska helgdagar 2025 för alla sajter.
