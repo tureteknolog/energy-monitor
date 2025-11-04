@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  energy-monitor:
+    build: .
+    container_name: energy-monitor
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DB_PATH=/app/data/energy.db
+      - PORT=8080
+      - TZ=Europe/Stockholm
+    restart: unless-stopped
